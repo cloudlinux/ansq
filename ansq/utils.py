@@ -1,6 +1,8 @@
 import json
 import logging
+import os
 import re
+import stat
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
@@ -188,3 +190,15 @@ def truncate(data: bytes, limit: int = 256) -> bytes:
         return data
 
     return data[:limit] + b"..."
+
+
+def is_unix_socket(addr) -> bool:
+    """
+    Check if the addr is a valid unix socket.
+    """
+    try:
+        s = os.lstat(addr)
+    except OSError:
+        return False
+    else:
+        return stat.S_ISSOCK(s.st_mode)

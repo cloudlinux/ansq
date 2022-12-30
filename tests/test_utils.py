@@ -1,6 +1,6 @@
 import pytest
 
-from ansq.utils import truncate
+from ansq.utils import truncate, is_unix_socket
 
 
 @pytest.mark.parametrize(
@@ -29,3 +29,10 @@ def test_truncate(text, limit, expected):
 def test_truncate_raises_value_error(text, limit):
     with pytest.raises(ValueError, match=r"^limit must be greater than 0$"):
         assert truncate(text, limit)
+
+
+def test_is_unix_socket(nsqd_with_unix_sockets):
+    assert is_unix_socket("/tmp/nsqd.sock")
+    assert is_unix_socket("/tmp/nsqd-http.sock")
+    assert not is_unix_socket("/tmp/")
+    assert not is_unix_socket("/tmp/file-not-exists")

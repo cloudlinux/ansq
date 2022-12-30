@@ -131,6 +131,38 @@ class NSQD(BaseNSQServer):
         return args
 
 
+class UnixListenersNSQD(NSQD):
+    """nsqd server with unix socket."""
+
+    http_writer_class = NSQDHTTPWriter
+
+    def __init__(
+        self,
+        addr: str = "/tmp/nsqd.sock",
+        http_addr: str = "/tmp/nsqd-http.sock",
+        data_path="/tmp",
+    ) -> None:
+        super().__init__(
+            addr=addr,
+            http_addr=http_addr,
+        )
+        self.data_path = data_path
+
+    @property
+    def command(self) -> str:
+        return "nsqd"
+
+    @property
+    def command_args(self) -> List[str]:
+        return super().command_args + ["-data-path", self.data_path, "--use-unix-sockets"]
+
+    async def stop(self):
+        await super().stop()
+        with contextlib.suppress(OSError):
+            os.remove(self.tcp_address)
+            os.remove(self.http_addr)
+
+
 class NSQLookupD(BaseNSQServer):
     """nsqlookupd server."""
 
@@ -170,6 +202,30 @@ def create_nsqd(tmp_path):
 
 
 @pytest.fixture
+def create_nsqd_with_unix_sockets(tmp_path):
+    @contextlib.asynccontextmanager
+    async def _create_nsqd_with_unix_sockets(
+        addr="/tmp/nsqd.sock",
+        http_addr="/tmp/nsqd-http.sock",
+    ):
+        data_path = tmp_path / "unix-sockets" / os.path.basename(addr)
+        data_path.mkdir(parents=True)
+
+        nsqd = UnixListenersNSQD(
+            addr=addr,
+            http_addr=http_addr,
+            data_path=str(data_path),
+        )
+        try:
+            await nsqd.start()
+            yield nsqd
+        finally:
+            await nsqd.stop()
+
+    return _create_nsqd_with_unix_sockets
+
+
+@pytest.fixture
 def create_nsqlookupd():
     @contextlib.asynccontextmanager
     async def _create_nsqlookupd(addr="127.0.0.1:4160", http_addr="127.0.0.1:4161"):
@@ -186,6 +242,12 @@ def create_nsqlookupd():
 @pytest.fixture
 async def nsqd(create_nsqd) -> NSQD:
     async with create_nsqd() as nsqd:
+        yield nsqd
+
+
+@pytest.fixture
+async def nsqd_with_unix_sockets(create_nsqd_with_unix_sockets) -> NSQD:
+    async with create_nsqd_with_unix_sockets() as nsqd:
         yield nsqd
 
 

@@ -25,7 +25,7 @@ from ansq.tcp.types import (
 )
 from ansq.tcp.types import TCPConnection as NSQConnectionBase
 from ansq.typedefs import TCPResponse
-from ansq.utils import validate_topic_channel_name
+from ansq.utils import validate_topic_channel_name, is_unix_socket
 
 # Auto reconnect settings
 AUTO_RECONNECT_INITIAL_INTERVAL = 2
@@ -37,7 +37,7 @@ class NSQConnection(NSQConnectionBase):
     async def connect(self) -> bool:
         """Open connection"""
 
-        if self._is_unix_socket():
+        if is_unix_socket(self._addr):
             self._reader, self._writer = await asyncio.open_unix_connection(
                 self._addr
             )

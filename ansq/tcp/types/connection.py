@@ -1,8 +1,6 @@
 import abc
 import asyncio
 import logging
-import os
-import stat
 import warnings
 from asyncio.events import AbstractEventLoop
 from asyncio.streams import StreamReader, StreamWriter
@@ -23,6 +21,7 @@ from typing import (
 import attr
 
 from ansq.typedefs import TCPResponse
+from ansq.utils import is_unix_socket
 
 if TYPE_CHECKING:
     from ansq.tcp.types import ConnectionStatus, NSQMessage, NSQMessageSchema
@@ -150,6 +149,8 @@ class TCPConnection(abc.ABC):
         self.rdy_messages_count: int = 1
         self._is_subscribed = False
 
+        self._is_unix_socket = is_unix_socket(self._addr)
+
     def __repr__(self) -> str:
         return "<{class_name}: endpoint={endpoint}, status={status}>".format(
             class_name=self.__class__.__name__,
@@ -171,17 +172,9 @@ class TCPConnection(abc.ABC):
 
     @property
     def socket_type(self) -> str:
-        if self._is_unix_socket():
+        if self._is_unix_socket:
             return "unix"
         return "tcp"
-
-    def _is_unix_socket(self) -> bool:
-        try:
-            s = os.lstat(self._addr)
-        except OSError:
-            return False
-        else:
-            return stat.S_ISSOCK(s.st_mode)
 
     @property
     def in_flight(self) -> int:
