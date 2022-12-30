@@ -4,7 +4,7 @@ from ansq import ConnectionFeatures, ConnectionOptions, open_connection
 from ansq.tcp.types import NSQCommands
 
 
-async def test_connection(nsqd):
+async def test_connection_success(nsqd):
     nsq = await open_connection()
     assert nsq.status.is_connected
 

@@ -6,7 +6,7 @@ from ansq.tcp.writer import Writer
 
 @pytest.fixture
 async def nsqd2(tmp_path, create_nsqd):
-    async with create_nsqd(port=4250, http_port=4251) as nsqd:
+    async with create_nsqd(addr="127.0.0.1:4250", http_addr="127.0.0.1:4251") as nsqd:
         yield nsqd
 
 

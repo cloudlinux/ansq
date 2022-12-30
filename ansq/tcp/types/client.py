@@ -29,23 +29,19 @@ class Client:
     async def connect(self) -> None:
         """Connect to nsqd addresses."""
         for address in self._nsqd_tcp_addresses:
-            try:
-                host, port = address.split(":")
-            except ValueError:
-                raise ValueError(f"Invalid TCP address: {address}")
-            await self.connect_to_nsqd(host=host, port=int(port))
+            await self.connect_to_nsqd(address)
 
     async def close(self) -> None:
         """Close all connections."""
         for connection in self.connections:
             await connection.close()
 
-    async def connect_to_nsqd(self, host: str, port: int) -> "NSQConnection":
-        """Connect and identify to nsqd by given host and port."""
+    async def connect_to_nsqd(self, addr: str) -> "NSQConnection":
+        """Connect and identify to nsqd by given address."""
         from ansq.tcp.connection import NSQConnection
 
         connection = NSQConnection(
-            host=host, port=port, connection_options=self.connection_options
+            addr=addr, connection_options=self.connection_options
         )
 
         existing_connection = self._connections.get(connection.id)

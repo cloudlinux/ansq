@@ -143,9 +143,9 @@ class Reader(Client):
         """
         raise NotImplementedError("Update max_in_flight not implemented yet")
 
-    async def connect_to_nsqd(self, host: str, port: int) -> "NSQConnection":
-        """Connect, identify and subscribe to nsqd by given host and port."""
-        connection = await super().connect_to_nsqd(host=host, port=port)
+    async def connect_to_nsqd(self, addr: str) -> "NSQConnection":
+        """Connect, identify and subscribe to nsqd by given address."""
+        connection = await super().connect_to_nsqd(addr=addr)
         if not connection.is_subscribed:
             await connection.subscribe(topic=self._topic, channel=self._channel)
         return connection
@@ -199,7 +199,7 @@ class Lookupd:
 
         # Create lookupd connections
         self._lookupd_connections = [
-            NsqLookupd.from_address(address) for address in http_addresses
+            NsqLookupd(address) for address in http_addresses
         ]
 
     async def query_lookup(self) -> None:
@@ -221,7 +221,7 @@ class Lookupd:
 
         # Connect to all producers addresses
         for address in producer_addresses:
-            await self._reader.connect_to_nsqd(address.host, address.port)
+            await self._reader.connect_to_nsqd(str(address))
 
     async def poll_lookup(self) -> NoReturn:
         """Poll ``query_lookup()`` infinitely."""

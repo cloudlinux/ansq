@@ -1,6 +1,8 @@
 import abc
 import asyncio
 import logging
+import os
+import stat
 import warnings
 from asyncio.events import AbstractEventLoop
 from asyncio.streams import StreamReader, StreamWriter
@@ -80,8 +82,7 @@ class TCPConnection(abc.ABC):
 
     def __init__(
         self,
-        host: str = "localhost",
-        port: int = 4150,
+        addr: str = "localhost:4150",
         *,
         connection_options: ConnectionOptions = ConnectionOptions(),
         **kwargs: Mapping[str, Any],
@@ -106,11 +107,11 @@ class TCPConnection(abc.ABC):
         self.instance_number = self.__class__.instances_count
         self.__class__.instances_count += 1
 
-        self._host, self._port = host, port
+        self._addr = addr
         self._loop: AbstractEventLoop = self._options.loop or asyncio.get_event_loop()
         self._debug = self._options.debug
         self.logger = self._options.logger or get_logger(
-            self._debug, f"{self._host}:{self._port}.{self.instance_number}"
+            self._debug, f"{self._addr}.{self.instance_number}"
         )
 
         self._message_queue: "asyncio.Queue[Optional[NSQMessage]]" = (
@@ -158,7 +159,7 @@ class TCPConnection(abc.ABC):
 
     @property
     def id(self) -> str:
-        return f"{self._host}:{self._port}"
+        return f"{self._addr}"
 
     @property
     def status(self) -> "ConnectionStatus":
@@ -166,7 +167,21 @@ class TCPConnection(abc.ABC):
 
     @property
     def endpoint(self) -> str:
-        return f"tcp://{self._host}:{self._port}"
+        return f"{self.socket_type}://{self._addr}"
+
+    @property
+    def socket_type(self) -> str:
+        if self._is_unix_socket():
+            return "unix"
+        return "tcp"
+
+    def _is_unix_socket(self) -> bool:
+        try:
+            s = os.lstat(self._addr)
+        except OSError:
+            return False
+        else:
+            return stat.S_ISSOCK(s.st_mode)
 
     @property
     def in_flight(self) -> int:

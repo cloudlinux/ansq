@@ -21,13 +21,11 @@ class BaseNSQServer(abc.ABC):
 
     def __init__(
         self,
-        host: str = "127.0.0.1",
-        port: int = 4150,
-        http_port: int = 4151,
+        addr: str = "127.0.0.1:4150",
+        http_addr: str = "127.0.0.1:4151"
     ) -> None:
-        self.host = host
-        self.port = port
-        self.http_port = http_port
+        self.tcp_address = addr
+        self.http_addr = http_addr
         self._process: Optional[Process] = None
 
         if shutil.which(self.command) is None:
@@ -38,15 +36,7 @@ class BaseNSQServer(abc.ABC):
             )
 
     def __repr__(self):
-        return f"{type(self).__name__}({self.host!r}, {self.port})"
-
-    @property
-    def tcp_address(self) -> str:
-        return f"{self.host}:{self.port}"
-
-    @property
-    def http_address(self) -> str:
-        return f"{self.host}:{self.http_port}"
+        return f"{type(self).__name__}({self.tcp_address})"
 
     @property
     @abc.abstractmethod
@@ -59,7 +49,7 @@ class BaseNSQServer(abc.ABC):
             "-tcp-address",
             self.tcp_address,
             "-http-address",
-            self.http_address,
+            self.http_addr,
         ]
 
     async def start(self):
@@ -83,7 +73,7 @@ class BaseNSQServer(abc.ABC):
 
     async def _wait_ping(self, timeout: int = 3) -> None:
         """Wait for successful ping to HTTP API, otherwise raise last exception."""
-        http_writer = self.http_writer_class(host=self.host, port=self.http_port)
+        http_writer = self.http_writer_class(addr=self.http_addr)
         start = time.time()
         while True:
             try:
@@ -109,17 +99,15 @@ class NSQD(BaseNSQServer):
 
     def __init__(
         self,
-        host: str = "127.0.0.1",
-        port: int = 4150,
-        http_port: int = 4151,
+        addr: str = "127.0.0.1:4150",
+        http_addr: str = "127.0.0.1:4151",
         data_path="/tmp",
         broadcast_address: Optional[str] = None,
         lookupd_tcp_addresses: Optional[Sequence[str]] = None,
     ) -> None:
         super().__init__(
-            host=host,
-            port=port,
-            http_port=http_port,
+            addr=addr,
+            http_addr=http_addr,
         )
         self.data_path = data_path
         self.broadcast_address = broadcast_address
@@ -157,19 +145,17 @@ class NSQLookupD(BaseNSQServer):
 def create_nsqd(tmp_path):
     @contextlib.asynccontextmanager
     async def _create_nsqd(
-        host="127.0.0.1",
-        port=4150,
-        http_port=4151,
+        addr="127.0.0.1:4150",
+        http_addr="127.0.0.1:4151",
         lookupd_tcp_addresses=None,
         broadcast_address="127.0.0.1",
     ):
-        data_path = tmp_path / f"{host}:{port}"
+        data_path = tmp_path / f"{addr}"
         data_path.mkdir(parents=True)
 
         nsqd = NSQD(
-            host=host,
-            port=port,
-            http_port=http_port,
+            addr=addr,
+            http_addr=http_addr,
             data_path=str(data_path),
             lookupd_tcp_addresses=lookupd_tcp_addresses,
             broadcast_address=broadcast_address,
@@ -186,8 +172,8 @@ def create_nsqd(tmp_path):
 @pytest.fixture
 def create_nsqlookupd():
     @contextlib.asynccontextmanager
-    async def _create_nsqlookupd(host="127.0.0.1", port=4160, http_port=4161):
-        nsqlookupd = NSQLookupD(host=host, port=port, http_port=http_port)
+    async def _create_nsqlookupd(addr="127.0.0.1:4160", http_addr="127.0.0.1:4161"):
+        nsqlookupd = NSQLookupD(addr=addr, http_addr=http_addr)
         try:
             await nsqlookupd.start()
             yield nsqlookupd

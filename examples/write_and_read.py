@@ -4,7 +4,9 @@ from ansq import open_connection
 
 
 async def main():
-    nsq = await open_connection()
+    nsq = await open_connection(
+        "/var/run/nsqd.sock",
+    )
     print(await nsq.pub("test_topic", "test_message"))
     # <NSQResponseSchema frame_type:FrameType.RESPONSE, body:b'OK', is_ok:True>
     print(await nsq.dpub("test_topic", "test_message", 3))

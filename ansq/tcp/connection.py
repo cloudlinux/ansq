@@ -36,9 +36,20 @@ AUTO_RECONNECT_PROGRESSION_RATIO = 2
 class NSQConnection(NSQConnectionBase):
     async def connect(self) -> bool:
         """Open connection"""
-        self._reader, self._writer = await asyncio.open_connection(
-            self._host, self._port
-        )
+
+        if self._is_unix_socket():
+            self._reader, self._writer = await asyncio.open_unix_connection(
+                self._addr
+            )
+        else:
+            try:
+                host, port = self._addr.split(":")
+            except ValueError:
+                raise ValueError(f"Invalid TCP address: {self._addr}")
+
+            self._reader, self._writer = await asyncio.open_connection(
+                host, port
+            )
 
         self._writer.write(NSQCommands.MAGIC_V2)
         self._status = ConnectionStatus.CONNECTED
@@ -587,8 +598,7 @@ class NSQConnection(NSQConnectionBase):
 
 
 async def open_connection(
-    host: str = "localhost",
-    port: int = 4150,
+    addr: str = "localhost:4150",
     *,
     connection_options: ConnectionOptions = ConnectionOptions(),
     **kwargs: Mapping[str, Any],
@@ -598,8 +608,7 @@ async def open_connection(
     If `connection_options` is defined other keyword args are being ignored.
     """
     nsq = NSQConnection(
-        host,
-        port,
+        addr,
         connection_options=connection_options,
         **kwargs,
     )
