@@ -4,16 +4,16 @@ from ansq import ConnectionFeatures, ConnectionOptions, open_connection
 from ansq.tcp.types import NSQCommands
 
 
-async def test_connection_success(nsqd):
-    nsq = await open_connection()
+async def test_unix_socket_connection_success(nsqd_with_unix_sockets):
+    nsq = await open_connection("/tmp/nsqd.sock")
     assert nsq.status.is_connected
 
     await nsq.close()
     assert nsq.status.is_closed
 
 
-async def test_reconnect_after_close(nsqd):
-    nsq = await open_connection()
+async def test_unix_socket_reconnect_after_close(nsqd_with_unix_sockets):
+    nsq = await open_connection("/tmp/nsqd.sock")
     assert nsq.status.is_connected
 
     await nsq.close()
@@ -26,8 +26,8 @@ async def test_reconnect_after_close(nsqd):
     assert nsq.status.is_closed
 
 
-async def test_reconnect_while_connected(nsqd):
-    nsq = await open_connection()
+async def test_unix_socket_reconnect_while_connected(nsqd_with_unix_sockets):
+    nsq = await open_connection("/tmp/nsqd.sock")
     assert nsq.status.is_connected
 
     assert await nsq.reconnect()
@@ -37,24 +37,26 @@ async def test_reconnect_while_connected(nsqd):
     assert nsq.status.is_closed
 
 
-async def test_auto_reconnect(nsqd, wait_for):
+async def test_unix_socket_auto_reconnect(nsqd_with_unix_sockets, wait_for):
     nsq = await open_connection(
+        "/tmp/nsqd.sock",
         connection_options=ConnectionOptions(auto_reconnect=True)
     )
     assert nsq.status.is_connected
 
-    await nsqd.stop()
+    await nsqd_with_unix_sockets.stop()
     await wait_for(lambda: nsq.status.is_reconnecting)
 
-    await nsqd.start()
+    await nsqd_with_unix_sockets.start()
     await wait_for(lambda: nsq.status.is_connected)
 
     await nsq.close()
     assert nsq.status.is_closed
 
 
-async def test_invalid_feature(create_nsqd, wait_for, nsqd):
+async def test_unix_socket_invalid_feature(create_nsqd_with_unix_sockets, wait_for, nsqd_with_unix_sockets):
     nsq = await open_connection(
+        "/tmp/nsqd.sock",
         connection_options=ConnectionOptions(
             # Default max heartbeat is 60s
             features=ConnectionFeatures(heartbeat_interval=60001)
@@ -63,30 +65,30 @@ async def test_invalid_feature(create_nsqd, wait_for, nsqd):
     assert nsq.status.is_closed
 
 
-async def test_connection_options_as_kwargs(nsqd):
-    nsq = await open_connection(debug=True)
+async def test_unix_socket_connection_options_as_kwargs(nsqd_with_unix_sockets):
+    nsq = await open_connection("/tmp/nsqd.sock", debug=True)
     assert nsq._options.debug is True
     await nsq.close()
 
 
-async def test_feature_options_as_kwargs(nsqd):
-    nsq = await open_connection(heartbeat_interval=30001)
+async def test_unix_socket_feature_options_as_kwargs(nsqd_with_unix_sockets):
+    nsq = await open_connection("/tmp/nsqd.sock", heartbeat_interval=30001)
     assert nsq._options.features.heartbeat_interval == 30001
     await nsq.close()
 
 
-async def test_invalid_kwarg(nsqd):
+async def test_unix_socket_invalid_kwarg(nsqd_with_unix_sockets):
     with pytest.raises(
         TypeError, match="got an unexpected keyword argument: 'invalid_kwarg'"
     ):
-        await open_connection(invalid_kwarg=1)
+        await open_connection("/tmp/nsqd.sock", invalid_kwarg=1)
 
 
 @pytest.mark.parametrize(
     "cmd", (NSQCommands.RDY, NSQCommands.FIN, NSQCommands.TOUCH, NSQCommands.REQ)
 )
-async def test_errors_from_commands_without_responses(nsqd, wait_for, cmd, caplog):
-    nsq = await open_connection()
+async def test_unix_socket_errors_from_commands_without_responses(nsqd_with_unix_sockets, wait_for, cmd, caplog):
+    nsq = await open_connection("/tmp/nsqd.sock")
 
     response = await nsq.execute(cmd)
     await wait_for(lambda: caplog.messages)

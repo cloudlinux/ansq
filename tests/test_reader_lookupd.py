@@ -12,7 +12,7 @@ async def nsqd(tmp_path, create_nsqd, nsqlookupd):
 @pytest.fixture
 async def nsqd2(tmp_path, create_nsqd, nsqlookupd2):
     async with create_nsqd(
-        port=4250, http_port=4251, lookupd_tcp_addresses=[nsqlookupd2.tcp_address]
+        addr="localhost:4250", http_addr="localhost:4251", lookupd_tcp_addresses=[nsqlookupd2.tcp_address]
     ) as nsqd:
         yield nsqd
 
@@ -25,7 +25,7 @@ async def nsqlookupd(create_nsqlookupd):
 
 @pytest.fixture
 async def nsqlookupd2(create_nsqlookupd):
-    async with create_nsqlookupd(port=4260, http_port=4261) as nsqlookupd:
+    async with create_nsqlookupd(addr="localhost:4260", http_addr="localhost:4261") as nsqlookupd:
         yield nsqlookupd
 
 
@@ -47,7 +47,7 @@ async def test_create_reader(
     reader = await create_reader(
         topic="foo",
         channel="bar",
-        lookupd_http_addresses=[nsqlookupd.http_address, nsqlookupd2.http_address],
+        lookupd_http_addresses=[nsqlookupd.http_addr, nsqlookupd2.http_addr],
         lookupd_poll_interval=100,
     )
 
@@ -65,7 +65,7 @@ async def test_create_connection(nsqlookupd, wait_for, nsqd, register_producers)
     reader = await create_reader(
         topic="foo",
         channel="bar",
-        lookupd_http_addresses=[nsqlookupd.http_address],
+        lookupd_http_addresses=[nsqlookupd.http_addr],
         lookupd_poll_interval=100,
     )
     assert len(reader.connections) == 0
@@ -80,7 +80,7 @@ async def test_close_connection(nsqlookupd, nsqd, wait_for, register_producers):
     reader = await create_reader(
         topic="foo",
         channel="bar",
-        lookupd_http_addresses=[nsqlookupd.http_address],
+        lookupd_http_addresses=[nsqlookupd.http_addr],
         lookupd_poll_interval=100,
     )
 
@@ -97,7 +97,7 @@ async def test_restore_connection(nsqlookupd, nsqd, wait_for, register_producers
     reader = await create_reader(
         topic="foo",
         channel="bar",
-        lookupd_http_addresses=[nsqlookupd.http_address],
+        lookupd_http_addresses=[nsqlookupd.http_addr],
         lookupd_poll_interval=100,
     )
 

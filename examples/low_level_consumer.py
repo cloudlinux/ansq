@@ -37,7 +37,9 @@ async def main(nsq: NSQConnection):
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    nsq_connection = loop.run_until_complete(open_connection())
+    nsq_connection = loop.run_until_complete(open_connection(
+        "/var/run/nsqd.sock",
+    ))
 
     try:
         loop.run_until_complete(main(nsq_connection))

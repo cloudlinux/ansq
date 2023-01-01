@@ -6,7 +6,7 @@ from ansq.tcp.reader import Reader
 
 @pytest.fixture
 async def nsqd2(tmp_path, create_nsqd):
-    async with create_nsqd(port=4250, http_port=4251) as nsqd:
+    async with create_nsqd(addr="127.0.0.1:4250", http_addr="127.0.0.1:4251") as nsqd:
         yield nsqd
 
 
@@ -40,7 +40,7 @@ async def test_close_reader(nsqd):
 
 
 async def test_wait_for_message(nsqd):
-    nsq = await open_connection(nsqd.host, nsqd.port)
+    nsq = await open_connection(nsqd.tcp_address)
     await nsq.pub(topic="foo", message="test_message")
     await nsq.close()
 
@@ -54,7 +54,7 @@ async def test_wait_for_message(nsqd):
 
 
 async def test_messages_generator(nsqd):
-    nsq = await open_connection(nsqd.host, nsqd.port)
+    nsq = await open_connection(nsqd.tcp_address)
     await nsq.pub(topic="foo", message="test_message1")
     await nsq.pub(topic="foo", message="test_message2")
     await nsq.close()
@@ -80,7 +80,7 @@ async def test_read_from_multiple_tcp_addresses(nsqd, nsqd2):
         nsqd_tcp_addresses=[nsqd.tcp_address, nsqd2.tcp_address],
     )
 
-    nsq1 = await open_connection(nsqd.host, nsqd.port)
+    nsq1 = await open_connection(nsqd.tcp_address)
     await nsq1.pub(topic="foo", message="test_message1")
     await nsq1.close()
 
@@ -88,7 +88,7 @@ async def test_read_from_multiple_tcp_addresses(nsqd, nsqd2):
     await message.fin()
     assert message.body == b"test_message1"
 
-    nsq2 = await open_connection(nsqd2.host, nsqd2.port)
+    nsq2 = await open_connection(nsqd2.tcp_address)
     await nsq2.pub(topic="foo", message="test_message2")
     await nsq2.close()
 
