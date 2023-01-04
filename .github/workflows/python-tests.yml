@@ -18,19 +18,12 @@ jobs:
         os:
           - Ubuntu
         python-version:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
           - "3.11"
         nsq-version:
-          - "nsq-1.1.0.linux-amd64.go1.10.3"
-          - "nsq-1.2.0.linux-amd64.go1.12.9"
-          - "nsq-1.2.1.linux-amd64.go1.16.6"
-        include:
-          - os: Ubuntu
-            python-version: "3.12-dev"
-            nsq-version: "nsq-1.2.1.linux-amd64.go1.16.6"
+          - "https://github.com/cloudlinux/nsq/releases/download/1.2.1-1/nsq-1.2.1-1.linux-amd64.go1.19.1.tar.gz"
     env:
       PY_COLORS: 1
       PYTEST_ADDOPTS: --cov-report=xml
@@ -38,8 +31,7 @@ jobs:
       - uses: actions/checkout@master
       - name: Download NSQ
         run: |
-          curl -sSL "http://bitly-downloads.s3.amazonaws.com/nsq/${{matrix.nsq-version}}.tar.gz" \
-                    | tar -xzv --strip-components=1
+          curl -sSL "${{matrix.nsq-version}}" | tar -xzv --strip-components=1
           sudo ln -s ./bin/nsqd /bin/nsqd
           ./bin/nsqd --version
       - name: Set up Python ${{ matrix.python-version }}
